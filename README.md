@@ -46,8 +46,9 @@ Fabric-мод для **Minecraft Java 1.21.11** (`gazjava`, версия `0.1.0-
 Результат: `build/libs/gazjava-0.1.0-alpha.jar` (файл `*-sources.jar` ставить не нужно).
 
 Сборка в GitHub Actions: `.github/workflows/build.yml` — проверяет JSON/текстуры/рецепты
-(`tools/validate_resources.py`), собирает мод, проверяет содержимое JAR и загружает его как артефакт.
-При пуше тега `v*` JAR прикрепляется к релизу.
+(`tools/validate_resources.py`), собирает мод, проверяет содержимое JAR, запускает настоящий сервер
+Minecraft 1.21.11 с модом (smoke-тест: `tools/smoke_test_server.sh` + `tools/rcon_check.py`) и загружает
+JAR как артефакт. При пуше тега `v*` JAR прикрепляется к релизу.
 
 ## Структура
 
@@ -55,4 +56,5 @@ Fabric-мод для **Minecraft Java 1.21.11** (`gazjava`, версия `0.1.0-
   творческий инвентарь).
 - `src/main/resources/assets/gazjava` — текстуры, модели, определения предметов, переводы (ru/en).
 - `src/main/resources/data/gazjava/recipe` — рецепты верстака.
-- `tools/generate_textures.py` — генератор пиксельных текстур (16×16); `tools/validate_resources.py` — проверки.
+- `tools/generate_textures.py` — генератор пиксельных текстур (16×16); `tools/validate_resources.py`,
+  `tools/smoke_test_server.sh`, `tools/rcon_check.py` — проверки.

@@ -2,13 +2,12 @@
 # Starts a real Minecraft 1.21.11 dedicated server with the mod (via Loom's runServer) and checks:
 #  - the mod initialises and registers 3 drinks,
 #  - no recipe / resource parsing errors mention gazjava,
-#  - every drink exists and carries the consumable, food and use_remainder components.
+#  - every drink exists and carries the consumable, food and use_remainder components
+#    (checked over RCON by tools/rcon_check.py).
 # Run from the repository root. Needs network access (Minecraft server jar download).
 set -uo pipefail
 
 LOG="run/smoke.log"
-FIFO="$(mktemp -u /tmp/gazjava-stdin.XXXXXX)"
-DRINKS=(gazyava_nefora gazyava_ofnika gazyava_motobrata)
 
 mkdir -p run
 echo "eula=true" > run/eula.txt
@@ -19,14 +18,14 @@ generate-structures=false
 spawn-protection=0
 view-distance=4
 simulation-distance=4
+enable-rcon=true
+rcon.port=25575
+rcon.password=gazjava-smoke
+broadcast-rcon-to-ops=false
 EOF
 rm -f "$LOG"
-mkfifo "$FIFO"
-exec 3<>"$FIFO"
 
-send() { echo "$1" >&3; sleep "${2:-1}"; }
-
-./gradlew runServer --no-daemon --console=plain <&3 > "$LOG" 2>&1 &
+./gradlew runServer --no-daemon --console=plain < /dev/null > "$LOG" 2>&1 &
 SERVER_PID=$!
 
 started=0
@@ -36,44 +35,33 @@ for _ in $(seq 1 240); do
   sleep 2
 done
 
+fail=0
 if [ "$started" -eq 1 ]; then
-  send "forceload add 0 0" 4
-  send "setblock 0 100 0 minecraft:chest" 2
-  for d in "${DRINKS[@]}"; do
-    send "item replace block 0 100 0 container.0 with gazjava:$d" 1
-    for comp in consumable food use_remainder; do
-      send "execute if items block 0 100 0 container.0 gazjava:$d[minecraft:$comp] run say SMOKE_OK $d $comp" 1
-    done
-  done
-  send "stop" 1
+  python3 -I tools/rcon_check.py || fail=1
+else
+  echo "FAIL: server did not finish starting"
+  fail=1
 fi
 
-# give the server up to 90s to shut down, then make sure nothing is left running
+# give the server up to 90s to shut down (rcon_check sends "stop"), then make sure nothing is left
 for _ in $(seq 1 45); do
   kill -0 "$SERVER_PID" 2>/dev/null || break
   sleep 2
 done
 kill "$SERVER_PID" 2>/dev/null || true
-exec 3>&-
-rm -f "$FIFO"
 
 echo "------ tail of server log ------"
-tail -n 60 "$LOG"
+tail -n 40 "$LOG"
 echo "--------------------------------"
 
-fail=0
-check() { # description, grep-pattern
-  if grep -qE "$2" "$LOG"; then echo "PASS: $1"; else echo "FAIL: $1"; fail=1; fi
-}
+if grep -q 'GazJava loaded: 3 drinks registered' "$LOG"; then
+  echo "PASS: mod initialised with 3 drinks"
+else
+  echo "FAIL: mod did not report 3 registered drinks"
+  fail=1
+fi
 
-if [ "$started" -ne 1 ]; then echo "FAIL: server did not finish starting"; exit 1; fi
-
-check "mod initialised with 3 drinks" 'GazJava loaded: 3 drinks registered'
-for d in "${DRINKS[@]}"; do
-  for comp in consumable food use_remainder; do
-    check "$d has $comp" "SMOKE_OK $d $comp"
-  done
-done
+grep -E 'Loaded [0-9]+ recipes' "$LOG" || true
 
 if grep -iE '(parsing error|couldn.t parse|failed to load|missing).*gazjava|gazjava.*(parsing error|couldn.t parse|failed to load|unknown)' "$LOG"; then
   echo "FAIL: gazjava related errors found in the log"

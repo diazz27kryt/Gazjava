@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "gazjava",
+	"version": "${version}",
+	"name": "GazJava",
+	"description": "Three fizzy drinks inspired by Zhivchik: Gazyava Nefora, Gazyava Ofnika and Gazyava Motobrata. Drink them for a long list of positive effects and get an empty glass bottle back.",
+	"authors": [
+		"diazz27kryt"
+	],
+	"contact": {
+		"homepage": "https://github.com/diazz27kryt/gazjava",
+		"sources": "https://github.com/diazz27kryt/gazjava",
+		"issues": "https://github.com/diazz27kryt/gazjava/issues"
+	},
+	"license": "All-Rights-Reserved",
+	"icon": "assets/gazjava/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.gazjava.GazJava"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

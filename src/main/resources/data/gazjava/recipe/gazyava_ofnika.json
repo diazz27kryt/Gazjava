@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"ingredients": [
+		"minecraft:apple",
+		"minecraft:apple",
+		"minecraft:sugar",
+		"minecraft:sugar",
+		"minecraft:honey_bottle",
+		"minecraft:glass_bottle"
+	],
+	"result": {
+		"id": "gazjava:gazyava_ofnika",
+		"count": 1
+	}
+}

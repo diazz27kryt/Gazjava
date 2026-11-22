@@ -1,0 +1,80 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate JSON / textures / recipes
+        run: |
+          pip install --quiet pillow
+          python3 tools/validate_resources.py
+
+      - name: Build mod
+        run: |
+          chmod +x gradlew
+          ./gradlew build --stacktrace
+
+      - name: Check the resulting JAR
+        run: |
+          set -e
+          JAR=$(ls build/libs/gazjava-*.jar | grep -v -- '-sources' | head -n 1)
+          echo "Built: $JAR"
+          unzip -l "$JAR"
+          unzip -l "$JAR" | grep -q 'fabric.mod.json'
+          unzip -l "$JAR" | grep -q 'com/gazjava/GazJava.class'
+          unzip -l "$JAR" | grep -q 'assets/gazjava/textures/item/gazyava_nefora.png'
+          unzip -l "$JAR" | grep -q 'assets/gazjava/textures/item/gazyava_ofnika.png'
+          unzip -l "$JAR" | grep -q 'assets/gazjava/textures/item/gazyava_motobrata.png'
+          unzip -l "$JAR" | grep -q 'data/gazjava/recipe/gazyava_motobrata.json'
+          unzip -p "$JAR" fabric.mod.json | grep -q '"version": "0.1.0-alpha"'
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: gazjava-jar
+          path: |
+            build/libs/gazjava-*.jar
+            !build/libs/gazjava-*-sources.jar
+          if-no-files-found: error
+
+  release:
+    # Publishes the JAR as a GitHub Release when a tag like v0.1.0-alpha is pushed.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: gazjava-jar
+          path: dist
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.jar
+          prerelease: true

@@ -60,6 +60,18 @@ jobs:
           unzip -l "$JAR" | grep -q 'data/gazjava/recipe/gazyava_motobrata.json'
           unzip -p "$JAR" fabric.mod.json | grep -q '"version": "0.1.0-alpha"'
 
+      - name: Smoke test (real Minecraft 1.21.11 dedicated server with the mod)
+        timeout-minutes: 15
+        run: bash tools/smoke_test_server.sh
+
+      - name: Upload server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-log
+          path: run/smoke.log
+          if-no-files-found: ignore
+
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:

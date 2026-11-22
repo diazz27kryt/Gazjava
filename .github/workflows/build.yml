@@ -36,6 +36,16 @@ jobs:
           chmod +x gradlew
           ./gradlew build --stacktrace
 
+      - name: Diagnostics (Minecraft class lookup on failure)
+        if: failure()
+        run: |
+          JARS=$(find / -type f -name '*.jar' \( -path '*loom-cache*' -o -path '*fabric-loom*' \) -size +5M 2>/dev/null | head -n 5)
+          echo "$JARS"
+          for J in $JARS; do
+            echo "== $J"
+            unzip -l "$J" 2>/dev/null | grep -E 'item/(component/)?Consumable|consume_effects/|world/item/Item\.class|food/FoodProperties' | head -n 40
+          done
+
       - name: Check the resulting JAR
         run: |
           set -e
